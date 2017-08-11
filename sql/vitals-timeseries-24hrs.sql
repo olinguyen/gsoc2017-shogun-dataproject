@@ -3,7 +3,7 @@ set search_path to mimiciii;
 -- Staging table #1: CHARTEVENTS
 with ce_stg as
 (
-  select ie.subject_id, ie.hadm_id, ie.icustay_id, EXTRACT('epoch' from chart.charttime - ie.intime) / 60.0 / 60.0 as timestamp_hours
+  select ie.subject_id, ie.hadm_id, ie.icustay_id, chart.charttime as timestamp -- EXTRACT('epoch' from chart.charttime - ie.intime) / 60.0 / 60.0 as timestamp_hours
   , case
       when itemid in (211,220045) and chart.valuenum > 0 and chart.valuenum < 300 then 1 -- HeartRate
       else null end as vitalid
@@ -26,10 +26,10 @@ with ce_stg as
 -- Aggregate table #1: CHARTEVENTS
 , ce as
 (
-  SELECT ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.timestamp_hours
+  SELECT ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.timestamp
   , case when VitalID = 1 then valuenum else null end as HeartRate
   FROM ce_stg
-  group by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.vitalid, ce_stg.valuenum, ce_stg.timestamp_hours
+  group by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.vitalid, ce_stg.valuenum, ce_stg.timestamp
   order by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id
 )
 
@@ -41,6 +41,7 @@ SELECT icu.subject_id, icu.hadm_id, icu.icustay_id, first_careunit, admission_ty
 , round((EXTRACT(EPOCH FROM (adm.dischtime-adm.admittime))/60/60/24) :: NUMERIC, 4) as hosp_los
 , EXTRACT('epoch' from icu.intime - pat.dob) / 60.0 / 60.0 / 24.0 / 365.242 as age_icu_in
 , pat.gender
+, pat.dod_hosp
 , RANK() OVER (PARTITION BY icu.subject_id ORDER BY icu.intime) AS icustay_id_order
 , hospital_expire_flag
 , CASE WHEN pat.dod IS NOT NULL 
@@ -128,14 +129,15 @@ LEFT JOIN serv
 
 SELECT ie.icustay_id, ie.subject_id, ie.hadm_id
 , co.age_icu_in, co.first_careunit, co.gender, co.admission_type
-, HeartRate, ce.timestamp_hours
+, co.dod_hosp
+, HeartRate, ce.timestamp
 
 -- outcomes
 , co.hospital_expire_flag, co.icu_expire_flag
 -- , co.hosp_los, co.icu_los, co.icustay_id_order
-, co.hospital1year_expire_flag, co.hospital1month_expire_flag, co.hospital1week_expire_flag
-, co.hospital6hours_expire_flag, co.hospital12hours_expire_flag, co.hospital18hours_expire_flag 
-, co.hospital1day_expire_flag
+-- , co.hospital1year_expire_flag, co.hospital1month_expire_flag, 
+-- , co.hospital6hours_expire_flag, co.hospital12hours_expire_flag, co.hospital18hours_expire_flag 
+, co.hospital1day_expire_flag, co.hospital1week_expire_flag
 
 -- exclusions
 , excl.exclusion_los, excl.exclusion_age
