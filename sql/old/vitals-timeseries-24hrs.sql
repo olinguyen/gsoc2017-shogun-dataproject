@@ -6,6 +6,14 @@ with ce_stg as
   select ie.subject_id, ie.hadm_id, ie.icustay_id, chart.charttime as timestamp -- EXTRACT('epoch' from chart.charttime - ie.intime) / 60.0 / 60.0 as timestamp_hours
   , case
       when itemid in (211,220045) and chart.valuenum > 0 and chart.valuenum < 300 then 1 -- HeartRate
+      when itemid in (51, 442, 455, 6701, 220179, 220050) and chart.valuenum > 0 and chart.valuenum < 400 then 2 -- SysBP
+      when itemid in (8368, 8440, 8441, 8555, 220180, 220051) and chart.valuenum > 0 and chart.valuenum < 300 then 3 -- DiasBP
+      when itemid in (456,52,6702,443,220052,220181,225312) and chart.valuenum > 0 and chart.valuenum < 300 then 4 -- MeanBP
+      when itemid in (615,618,220210,224690) and chart.valuenum > 0 and chart.valuenum < 70 then 5 -- RespRate
+      when itemid in (223761, 678) and chart.valuenum > 70 and chart.valuenum < 120 then 6 -- TempC
+      when itemid in (223762, 676) and chart.valuenum > 10 and chart.valuenum < 50 then 6 -- TempC
+      when itemid in (646, 220277) and chart.valuenum > 0 and chart.valuenum <= 100 then 7 -- SpO2
+      when itemid in (807, 811, 1529, 3745, 3744, 225664, 220621, 226537) and chart.valuenum > 0 then 8 -- Glucose
       else null end as vitalid
   , case
       when chart.itemid = any (ARRAY[223761, 678]) then (chart.valuenum - 32::double precision) / 1.8::double precision
@@ -20,7 +28,58 @@ with ce_stg as
     (array[
     -- HEART RATE
     211, --"Heart Rate"
-    220045 --"Heart Rate"
+    220045, --"Heart Rate"
+
+    -- SYSTOLIC BLOOD PRESSURE
+    51, 
+    442, 
+    455, 
+    6701, 
+    220179, 
+    220050,
+
+    -- DIASTOLIC BLOOD PRESSURE
+    8368, 
+    8440, 
+    8441, 
+    8555, 
+    220180, 
+    220051,
+
+    -- MEAN BLOOD PRESSURE
+    456, --"NBP Mean"
+    52, --"Arterial BP Mean"
+    6702, --	Arterial BP Mean #2
+    443, --	Manual BP Mean(calc)
+    220052, --"Arterial Blood Pressure mean"
+    220181, --"Non Invasive Blood Pressure mean"
+    225312, --"ART BP mean"
+
+    -- RESPIRATORY RATE
+    618,--	Respiratory Rate
+    615,--	Resp Rate (Total)
+    220210,--	Respiratory Rate
+    224690, --	Respiratory Rate (Total)
+
+    -- TEMP C
+    223761,
+    678,
+    223762, 
+    676,
+
+    -- SpO2
+    646, 
+    220277,
+
+    -- GLUCOSE
+    807, 
+    811, 
+    1529, 
+    3745, 
+    3744, 
+    225664, 
+    220621, 
+    226537
     ])
 )
 -- Aggregate table #1: CHARTEVENTS
@@ -28,9 +87,15 @@ with ce_stg as
 (
   SELECT ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.timestamp
   , case when VitalID = 1 then valuenum else null end as HeartRate
+  , case when VitalID = 2 then valuenum else null end as SysBP
+  , case when VitalID = 3 then valuenum else null end as DiasBP
+  , case when VitalID = 4 then valuenum else null end as MeanBP
+  , case when VitalID = 5 then valuenum else null end as RespRate
+  , case when VitalID = 6 then valuenum else null end as TempC
+  , case when VitalID = 7 then valuenum else null end as SpO2
   FROM ce_stg
   group by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.vitalid, ce_stg.valuenum, ce_stg.timestamp
-  order by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id
+  order by ce_stg.subject_id, ce_stg.hadm_id, ce_stg.icustay_id, ce_stg.timestamp
 )
 
 -- Table #4: Clinical data + demographics
@@ -49,26 +114,11 @@ SELECT icu.subject_id, icu.hadm_id, icu.icustay_id, first_careunit, admission_ty
        AND pat.dod <= icu.outtime + interval '6 hour' THEN 1 
        ELSE 0 END AS icu_expire_flag
 , CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '6 hour' THEN 1 
-    ELSE 0 END as hospital6hours_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '12 hour' THEN 1 
-    ELSE 0 END as hospital12hours_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '18 hour' THEN 1 
-    ELSE 0 END as hospital18hours_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
     AND pat.dod < adm.admittime + interval '1' day THEN 1 
     ELSE 0 END as hospital1day_expire_flag
 , CASE WHEN pat.dod IS NOT NULL
     AND pat.dod < adm.admittime + interval '7' day THEN 1 
     ELSE 0 END as hospital1week_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '30' day THEN 1 
-    ELSE 0 END as hospital1month_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '1' year THEN 1 
-    ELSE 0 END as hospital1year_expire_flag      
 FROM icustays icu
 INNER JOIN patients pat
   ON icu.subject_id = pat.subject_id
