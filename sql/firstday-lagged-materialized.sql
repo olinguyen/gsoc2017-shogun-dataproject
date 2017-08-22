@@ -23,6 +23,7 @@ SELECT icu.subject_id, icu.hadm_id, icu.icustay_id, first_careunit, admission_ty
 , icu.los as icu_los
 , round((EXTRACT(EPOCH FROM (adm.dischtime-adm.admittime))/60/60/24) :: NUMERIC, 4) as hosp_los
 , EXTRACT('epoch' from icu.intime - pat.dob) / 60.0 / 60.0 / 24.0 / 365.242 as age_icu_in
+, icu.intime as icu_intime
 , pat.gender
 , pat.dod_hosp
 , RANK() OVER (PARTITION BY icu.subject_id ORDER BY icu.intime) AS icustay_id_order
@@ -95,7 +96,7 @@ vital.*
 -- demographic data
 , co.age_icu_in, co.first_careunit, co.gender, co.admission_type
 , hw.height_first, hw.weight_first
-
+, EXTRACT('epoch' from vital.timestamp - co.icu_intime) / 60.0 / 60.0 / 24.0 / 365.242 as icu_los
 -- outcomes
 , co.hospital_expire_flag, co.icu_expire_flag
 , co.hosp_los, co.icu_los, co.icustay_id_order
@@ -112,6 +113,10 @@ vital.*
     WHEN vital.timestamp + interval '7' day >= co.dod_hosp THEN 1 
     ELSE 0 END 
     AS dead_in_7d
+, CASE 
+    WHEN vital.timestamp + interval '30' day >= co.dod_hosp THEN 1 
+    ELSE 0 END 
+    AS dead_in_30d
 
 -- exclusions
 , excl.exclusion_los, excl.exclusion_age

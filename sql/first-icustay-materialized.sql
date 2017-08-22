@@ -31,11 +31,14 @@ SELECT icu.subject_id, icu.hadm_id, icu.icustay_id, first_careunit, admission_ty
        AND pat.dod <= icu.outtime + interval '6 hour' THEN 1 
        ELSE 0 END AS icu_expire_flag
 , CASE WHEN pat.dod IS NOT NULL
+    AND pat.dod < adm.admittime + interval '1' day THEN 1 
+    ELSE 0 END as hospital1day_expire_flag
+, CASE WHEN pat.dod IS NOT NULL
+    AND pat.dod < adm.admittime + interval '7' day THEN 1 
+    ELSE 0 END as hospital7day_expire_flag
+, CASE WHEN pat.dod IS NOT NULL
     AND pat.dod < adm.admittime + interval '30' day THEN 1 
     ELSE 0 END as hospital30day_expire_flag
-, CASE WHEN pat.dod IS NOT NULL
-    AND pat.dod < adm.admittime + interval '1' year THEN 1 
-    ELSE 0 END as hospital1year_expire_flag      
 FROM icustays icu
 INNER JOIN patients pat
   ON icu.subject_id = pat.subject_id
@@ -84,18 +87,22 @@ SELECT vital.icustay_id, vital.subject_id, vital.hadm_id
 , HeartRate_Max
 , DiasBP_Min
 , DiasBP_Max
+, DiasBP_Mean
 , SysBP_Min
 , SysBP_Max
+, SysBP_Mean
 , MeanBP_Min
 , MeanBP_Mean
 , MeanBP_Max
 , RespRate_Min
-, RespRate_Mean
 , RespRate_Max
+, RespRate_Mean
 , TempC_Min
 , TempC_Max
+, TempC_Mean
 , SpO2_Min
 , SpO2_Max
+, SpO2_Mean
 
 -- Glasgow coma score
 , MinGCS
@@ -154,6 +161,7 @@ SELECT vital.icustay_id, vital.subject_id, vital.hadm_id
 
 -- outcomes
 , co.hospital_expire_flag, co.icu_expire_flag
+, co.hospital1day_expire_flag, co.hospital7day_expire_flag, co.hospital30day_expire_flag
 , co.hosp_los, co.icu_los, co.icustay_id_order
 
 -- exclusions
