@@ -283,37 +283,21 @@ LEFT JOIN serv
 SELECT ie.icustay_id, ie.subject_id, ie.hadm_id
 -- , adm.HOSPITAL_EXPIRE_FLAG -- whether the patient died within the hospital
 -- , EXTRACT('epoch' from ie.intime - pat.dob) / 60.0 / 60.0 / 24.0 / 365.242 as Age
-, HeartRate_Min
-, HeartRate_Mean
-, HeartRate_Max
-, DiasBP_Min
-, DiasBP_Max
-, SysBP_Min
-, SysBP_Max
-, MeanBP_Min
-, MeanBP_Mean
-, MeanBP_Max
-, RespRate_Min
-, RespRate_Mean
-, RespRate_Max
-, TempC_Min
-, TempC_Max
-, SpO2_Min
-, SpO2_Max
+, HeartRate_Min, HeartRate_Mean, HeartRate_Max
+, DiasBP_Min, DiasBP_Max, DiasBP_Mean
+, SysBP_Min, SysBP_Max, SysBP_Mean
+, MeanBP_Min, MeanBP_Max, MeanBP_Mean
+, RespRate_Min, RespRate_Mean, RespRate_Max
+, TempC_Min, TempC_Max, TempC_Mean
+, SpO2_Min, SpO2_Max, SpO2_Mean
 
-, GCS_Min
-, GCS_Max
+, GCS_Min, GCS_Max
 
-, BILIRUBIN_min
-, BILIRUBIN_max
-, CREATININE_min
-, CREATININE_max
-, HEMOGLOBIN_min
-, HEMOGLOBIN_max
-, SODIUM_min
-, SODIUM_max
-, WBC_min
-, WBC_max
+, BILIRUBIN_min, BILIRUBIN_max
+, CREATININE_min, CREATININE_max
+, HEMOGLOBIN_min, HEMOGLOBIN_max
+, SODIUM_min, SODIUM_max
+, WBC_min, WBC_max
 
 , co.age_icu_in, co.first_careunit, co.gender
 , co.hospital_expire_flag, co.icu_expire_flag
@@ -334,4 +318,3 @@ left join co
   on ie.icustay_id = co.icustay_id
 left join excl
   on ie.icustay_id = excl.icustay_id
-
