@@ -1,6 +1,6 @@
 # Patient Monitoring and Decision Support using Health Data
 
-Github repository for the code for my Google Summer of Code 2017 project with [Shogun Machine Learning Toolbox](shogun.ml). Work for this project was also documented [here](https://olinguyen.github.io/2017-08-21-gsoc-final-post/).
+Github repository for the code for my Google Summer of Code 2017 project with [Shogun Machine Learning Toolbox](http://shogun.ml). Work for this project was also documented [here](https://olinguyen.github.io/2017-08-21-gsoc-final-post/).
 
 ## Abstract
 
@@ -18,4 +18,5 @@ For GSoC2017, I will make use of the Shogun library on health data and show the 
 ## Subfolders
 
 `sql`: Contains sql files for queries on the MIMIC database
+
 `scripts`: Utility functions used in some of the notebooks
